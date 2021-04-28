@@ -1,5 +1,6 @@
 import sys
 import math
+import random
 import pandas as pd
 import numpy as np
 from sklearn.datasets import load_iris
@@ -19,27 +20,67 @@ class Model:
 
         if self.algorithm.upper() == "AVERAGE":
             self.average_algorithm()
-            print(self.model)
+            return(self.model)
       
-        #elif algorithm.upper() == "LLOYD":
-
+        elif self.algorithm.upper() == "LLOYD":
+            self.lloyd_algorithm()
+            return self.model
         
         else:
             print("Unsupported Algorithm")
 
+    # Lloyd's Algorithm
+    def lloyd_algorithm(self):
+        nodes = initialize_data(self.dataframe)
+        
+        old_clustering = [0]
+        new_clustering = [1]
+
+        first_iteration = 1
+        while old_clustering != new_clustering:
+            old_clustering = new_clustering
+
+            # Choose k random centers
+            if first_iteration == 1:
+                first_iteration = 0
+                centers = []
+                for integer in range(self.k):
+                    centers.append(random.choice(nodes))
+            
+            else:
+                centers = []
+                for cluster in old_clustering:
+                    centers.append(cluster.average())
+        
+            # Find the distance between each node and the center
+            distances = []
+            for node1 in nodes:
+                shortest_distance = Shortest_Distance()
+                for center in centers:
+                    if distance(node1, center) < shortest_distance.distance and distance(node1, center) != 0:
+                        shortest_distance.update(distance(node1, center), [node1], [center])
+                distances.append(shortest_distance)
+            
+            # Create clusters
+            new_clustering = []
+            for center in centers:
+                temp_cluster = []
+                for distance in distances:
+                    if center == distance.cluster2:
+                        temp_cluster.append(cluster1)
+                new_clustering.append(temp_cluster)
+
 
     # Average Linkage Algorithm
     def average_algorithm(self):
-        print(self.model)
 
         # Initialize Singletons
         nodes = initialize_data(self.dataframe)
         for node in nodes:
-            self.model.append(Cluster(str(node.key), [node]))
+            self.model.append([node])
 
         # Perform Algorithm
         while len(self.model) > self.k:
-            print("k =", len(self.model))
 
             shortest_distance = Shortest_Distance()
             for i, cluster1 in enumerate(self.model[:-1]):
@@ -49,16 +90,9 @@ class Model:
                         shortest_distance.update(distance(cluster1.average(), cluster2.average()), cluster1, cluster2) 
                 
             # Merge Clusters
-            temp_model = []
-            for cluster in self.model:
-                if cluster.uid != shortest_distance.cluster1.uid or cluster.uid != shortest_distance.cluster2.uid:
-                    temp_model.append(cluster)
-            
-            temp_model.append(Cluster(str(shortest_distance.cluster1.uid) + "-" + str(shortest_distance.cluster2.uid), shortest_distance.cluster1.nodes + shortest_distance.cluster2.nodes))
-            self.model = temp_model
-
-            print(shortest_distance.cluster1.uid)
-            print(shortest_distance.cluster2.uid)
+            self.model.remove(shortest_distance.cluster1)
+            self.model.remove(shortest_distance.cluster2)
+            self.model.append(Cluster(shortest_distance.cluster1.nodes + shortest_distance.cluster2.nodes))
 
 class Shortest_Distance():
     def __init__(self):
@@ -69,12 +103,10 @@ class Shortest_Distance():
         self.cluster1 = cluster1
         self.cluster2 = cluster2
         
-
 class Cluster:
 
     # Initialize with a list of nodes
-    def __init__(self, uid, list_of_nodes):
-        self.uid = uid
+    def __init__(self, list_of_nodes):
         self.nodes = []
         for node in list_of_nodes:
             self.nodes.append(node)
@@ -95,6 +127,7 @@ class Cluster:
 
         features = []
         average_values = []
+        temp_id = ""
 
         # Use the first node as a template
         for key in self.nodes[0].data:
@@ -103,10 +136,11 @@ class Cluster:
         for feature in features:
             average = 0
             for node in self.nodes:
-                average += node.data[key]
+                average += node.data[feature]
+                temp_id += str(node.key)
             average_values.append(average/len(self.nodes))
 
-        return Node(123, features, average_values)
+        return Node(temp_id, features, average_values)
 
     # Print out the cluster
     def __repr__(self):
@@ -172,4 +206,5 @@ def distance(node1, node2):
         
     return math.sqrt(x)
     
+def Hamming(model1, model2):
     
