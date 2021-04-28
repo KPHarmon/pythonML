@@ -3,6 +3,7 @@ import math
 import random
 import pandas as pd
 import numpy as np
+from scipy.spatial import distance
 from sklearn.datasets import load_iris
 
 class Model:
@@ -22,56 +23,117 @@ class Model:
         elif self.algorithm.upper() == "AVERAGE":
             self.average_algorithm()
         elif self.algorithm.upper() == "LLOYD":
-            self.lloyd_algorithm(iterations)
+            self.lloyd_algorithm()
             return self.model
         
         else:
             print("Unsupported Algorithm")
 
     # Lloyd's Algorithm
-    def lloyd_algorithm(self, iterations):
+    def lloyd_algorithm(self):
 
-        for i in iterations:
-
-            nodes = initialize_data(self.dataframe)
+        X = self.dataframe
+        k = self.k
+        max_iterations = 100
+        '''
+        X: multidimensional data
+        k: number of clusters
+        max_iterations: number of repetitions before clusters are established
+        
+        Steps:
+        1. Convert data to numpy aray
+        2. Pick indices of k random point without replacement
+        3. Find class (P) of each data point using euclidean distance_calc
+        4. Stop when max_iteration are reached of P matrix doesn't change
+        
+        Return:
+        np.array: containg class of each data point
+        '''
+        if isinstance(X, pd.DataFrame):X = X.values
+        idx = np.random.choice(len(X), k, replace=False)
+        centroids = X[idx, :]
+        P = np.argmin(distance.cdist(X, centroids, 'euclidean'),axis=1)
+        for j in range(max_iterations):
             
-            old_clustering = [0]
-            new_clustering = [1]
+            centroids = np.vstack([X[P==i,:].mean(axis=0) for i in range(k)])
+            
+            tmp = np.argmin(distance.cdist(X, centroids, 'euclidean'),axis=1)
+            
+            if np.array_equal(P,tmp):
+                break
+            P = tmp
+        P = P.tolist()
 
-            first_iteration = 1
-            while old_clustering != new_clustering:
-                old_clustering = new_clustering
+        nodes = initialize_data(self.dataframe)
+        
+        temp_list0 = []
+        temp_list1 = []
+        temp_list2 = []
 
+        for i,node in enumerate(nodes):
+            if P[i] == 0:
+                temp_list0.append(node)
+            elif P[i] == 1:
+                temp_list1.append(node)
+            elif P[i] == 2:
+                temp_list2.append(node)                 
+        self.model.append(temp_list0)
+        self.model.append(temp_list1)
+        self.model.append(temp_list2)
+            
+        print(self.model)
+        #nodes = initialize_data(self.dataframe)
+        
+        # Get k random centers
+        #centers = []
+        #for i in range(self.k):
+        #    centers.append(random.choice(nodes))
+        #    
+        #distance_calcs = []
+        #for i,node in enumerate(nodes):
+        #    distance_calcs.append(node, center, 
+	#
+
+
+
+        #for i in range(100):
+        #                old_clustering = [0]
+        #    new_clustering = [1]
+	#
+        #    first_iteration = 1
+        #    while old_clustering != new_clustering:
+        #        old_clustering = new_clustering
+#
                 # Choose k random centers
-                if first_iteration == 1:
-                    first_iteration = 0
-                    centers = []
-                    for integer in range(self.k):
-                        centers.append(random.choice(nodes))
-                
-                else:
-                    centers = []
-                    for cluster in old_clustering:
-                        centers.append(cluster.average())
+                #if first_iteration == 1:
+                #    first_iteration = 0
+                #    centers = []
+                #    for integer in range(self.k):
+                #        centers.append(random.choice(nodes))
+                #
+                #else:
+                #    centers = []
+                #    for cluster in old_clustering:
+                #        centers.append(cluster.average())
             
-                # Find the distance between each node and the center
-                distances = []
-                for node1 in nodes:
-                    shortest_distance = Shortest_Distance()
-                    for center in centers:
-                        if distance(node1, center) < shortest_distance.distance and distance(node1, center) != 0:
-                            if shortest_distance.distance != 0:
-                                shortest_distance.update(distance(node1, center), [node1], [center])
-                        distances.append(shortest_distance)
-                
+                # Find the distance_calc between each node and the center
+                #distance_calcs = []
+                #for node1 in nodes:
+                #    shortest_distance_calc = Shortest_distance_calc()
+                #    for center in centers:
+                #        if distance_calc(node1, center) < shortest_distance_calc.distance_calc and distance_calc(node1, center) != 0:
+                #            if shortest_distance_calc.distance_calc != 0:
+                #                shortest_distance_calc.update(distance_calc(node1, center), [node1], [center])
+                #        distance_calcs.append(shortest_distance_calc)
+                #
                 # Create clusters
-                new_clustering = []
-                for center in centers:
-                    temp_cluster = []
-                    for distance in distances:
-                        if center == distance.cluster2:
-                            temp_cluster.append(distance.cluster1)
-                    new_clustering.append(temp_cluster)
+                #new_clustering = []
+                #for center in centers:
+                #    temp_cluster = []
+                #    for distance_calc in distance_calcs:
+                #        if center == distance_calc.cluster2:
+                #            temp_cluster.append(distance_calc.cluster1)
+                #    new_clustering.append(temp_cluster)
 
 
     # Average Linkage Algorithm
@@ -82,20 +144,19 @@ class Model:
         for node in nodes:
             self.model.append(Cluster([node]))
 
-        print(self.model)
         # Perform Algorithm
         while len(self.model) > self.k:
-            shortest_distance = Shortest_Distance()
+            shortest_distance_calc = Shortest_distance_calc()
             for i, cluster1 in enumerate(self.model[:-1]):
                 for cluster2 in self.model[i+1:]:
 
-                    if distance(cluster1.average(), cluster2.average()) < shortest_distance.distance:
-                        shortest_distance.update(distance(cluster1.average(), cluster2.average()), cluster1, cluster2) 
+                    if distance_calc(cluster1.average(), cluster2.average()) < shortest_distance_calc.distance_calc:
+                        shortest_distance_calc.update(distance_calc(cluster1.average(), cluster2.average()), cluster1, cluster2) 
                 
             # Merge Clusters
-            self.model.remove(shortest_distance.cluster1)
-            self.model.remove(shortest_distance.cluster2)
-            self.model.append(Cluster(shortest_distance.cluster1.nodes + shortest_distance.cluster2.nodes))
+            self.model.remove(shortest_distance_calc.cluster1)
+            self.model.remove(shortest_distance_calc.cluster2)
+            self.model.append(Cluster(shortest_distance_calc.cluster1.nodes + shortest_distance_calc.cluster2.nodes))
         print(self.model)
 
     # Single Linkage Algorithm
@@ -103,32 +164,31 @@ class Model:
 
         # Initialize Singletons
         nodes = initialize_data(self.dataframe)
-
         for node in nodes:
-            self.model.append(Cluster(node))
+            self.model.append(Cluster([node]))
 
         # Perform Algorithm
         while len(self.model) > self.k:
 
-            shortest_distance = Shortest_Distance()
+            shortest_distance_calc = Shortest_distance_calc()
             for i, cluster1 in enumerate(self.model[:-1]):
                 for node1 in cluster1.nodes:
                     for cluster2 in self.model[i+1:]:
                         for node2 in cluster2.nodes:
-                            if distance(node1, node2) < shortest_distance.distance:
-                                shortest_distance.update(distance(node1, node2), cluster1, cluster2) 
+                            if distance_calc(node1, node2) < shortest_distance_calc.distance_calc:
+                                shortest_distance_calc.update(distance_calc(node1, node2), cluster1, cluster2) 
                 
             # Merge Clusters
-            self.model.remove(shortest_distance.cluster1)
-            self.model.remove(shortest_distance.cluster2)
-            self.model.append(Cluster(shortest_distance.cluster1 + shortest_distance.cluster2))
+            self.model.remove(shortest_distance_calc.cluster1)
+            self.model.remove(shortest_distance_calc.cluster2)
+            self.model.append(Cluster(shortest_distance_calc.cluster1 + shortest_distance_calc.cluster2))
 
-class Shortest_Distance():
+class Shortest_distance_calc():
     def __init__(self):
-        self.distance = 9999999
+        self.distance_calc = 9999999
 
-    def update(self, distance, cluster1, cluster2):
-        self.distance = distance
+    def update(self, distance_calc, cluster1, cluster2):
+        self.distance_calc = distance_calc
         self.cluster1 = cluster1
         self.cluster2 = cluster2
         
@@ -228,8 +288,8 @@ def initialize_data(dataframe):
 
     return nodes
 
-# Helper function to find the distance between two nodes
-def distance(node1, node2):
+# Helper function to find the distance_calc between two nodes
+def distance_calc(node1, node2):
     x = 0
     for key in node1.data:
         x = x + (node1.data[key] - node2.data[key])**2
