@@ -15,60 +15,63 @@ class Model:
     def __repr__(self):
         return self.model
 
-    def run(self):
-        #if algorithm.upper() == "SINGLE":
-
-        if self.algorithm.upper() == "AVERAGE":
-            self.average_algorithm()
+    def run(self, iterations=0):
+        if self.algorithm.upper() == "SINGLE":
+            self.single_algorithm()
             return(self.model)
-      
+        elif self.algorithm.upper() == "AVERAGE":
+            self.average_algorithm()
         elif self.algorithm.upper() == "LLOYD":
-            self.lloyd_algorithm()
+            self.lloyd_algorithm(iterations)
             return self.model
         
         else:
             print("Unsupported Algorithm")
 
     # Lloyd's Algorithm
-    def lloyd_algorithm(self):
-        nodes = initialize_data(self.dataframe)
-        
-        old_clustering = [0]
-        new_clustering = [1]
+    def lloyd_algorithm(self, iterations):
 
-        first_iteration = 1
-        while old_clustering != new_clustering:
-            old_clustering = new_clustering
+        for i in iterations:
 
-            # Choose k random centers
-            if first_iteration == 1:
-                first_iteration = 0
-                centers = []
-                for integer in range(self.k):
-                    centers.append(random.choice(nodes))
+            nodes = initialize_data(self.dataframe)
             
-            else:
-                centers = []
-                for cluster in old_clustering:
-                    centers.append(cluster.average())
-        
-            # Find the distance between each node and the center
-            distances = []
-            for node1 in nodes:
-                shortest_distance = Shortest_Distance()
+            old_clustering = [0]
+            new_clustering = [1]
+
+            first_iteration = 1
+            while old_clustering != new_clustering:
+                old_clustering = new_clustering
+
+                # Choose k random centers
+                if first_iteration == 1:
+                    first_iteration = 0
+                    centers = []
+                    for integer in range(self.k):
+                        centers.append(random.choice(nodes))
+                
+                else:
+                    centers = []
+                    for cluster in old_clustering:
+                        centers.append(cluster.average())
+            
+                # Find the distance between each node and the center
+                distances = []
+                for node1 in nodes:
+                    shortest_distance = Shortest_Distance()
+                    for center in centers:
+                        if distance(node1, center) < shortest_distance.distance and distance(node1, center) != 0:
+                            if shortest_distance.distance != 0:
+                                shortest_distance.update(distance(node1, center), [node1], [center])
+                        distances.append(shortest_distance)
+                
+                # Create clusters
+                new_clustering = []
                 for center in centers:
-                    if distance(node1, center) < shortest_distance.distance and distance(node1, center) != 0:
-                        shortest_distance.update(distance(node1, center), [node1], [center])
-                distances.append(shortest_distance)
-            
-            # Create clusters
-            new_clustering = []
-            for center in centers:
-                temp_cluster = []
-                for distance in distances:
-                    if center == distance.cluster2:
-                        temp_cluster.append(cluster1)
-                new_clustering.append(temp_cluster)
+                    temp_cluster = []
+                    for distance in distances:
+                        if center == distance.cluster2:
+                            temp_cluster.append(distance.cluster1)
+                    new_clustering.append(temp_cluster)
 
 
     # Average Linkage Algorithm
@@ -77,11 +80,11 @@ class Model:
         # Initialize Singletons
         nodes = initialize_data(self.dataframe)
         for node in nodes:
-            self.model.append([node])
+            self.model.append(Cluster([node]))
 
+        print(self.model)
         # Perform Algorithm
         while len(self.model) > self.k:
-
             shortest_distance = Shortest_Distance()
             for i, cluster1 in enumerate(self.model[:-1]):
                 for cluster2 in self.model[i+1:]:
@@ -93,6 +96,32 @@ class Model:
             self.model.remove(shortest_distance.cluster1)
             self.model.remove(shortest_distance.cluster2)
             self.model.append(Cluster(shortest_distance.cluster1.nodes + shortest_distance.cluster2.nodes))
+        print(self.model)
+
+    # Single Linkage Algorithm
+    def single_algorithm(self):
+
+        # Initialize Singletons
+        nodes = initialize_data(self.dataframe)
+
+        for node in nodes:
+            self.model.append(Cluster(node))
+
+        # Perform Algorithm
+        while len(self.model) > self.k:
+
+            shortest_distance = Shortest_Distance()
+            for i, cluster1 in enumerate(self.model[:-1]):
+                for node1 in cluster1.nodes:
+                    for cluster2 in self.model[i+1:]:
+                        for node2 in cluster2.nodes:
+                            if distance(node1, node2) < shortest_distance.distance:
+                                shortest_distance.update(distance(node1, node2), cluster1, cluster2) 
+                
+            # Merge Clusters
+            self.model.remove(shortest_distance.cluster1)
+            self.model.remove(shortest_distance.cluster2)
+            self.model.append(Cluster(shortest_distance.cluster1 + shortest_distance.cluster2))
 
 class Shortest_Distance():
     def __init__(self):
@@ -159,10 +188,11 @@ class Node:
             self.data[feature] = values[index]
 
     def __repr__(self):
-        string = "Key: " + str(self.key) + "\n"
-        for key in self.data:
-            string = string + "\t" + str(key) + " -> " + str(self.data[key]) + "\n"
-        return string
+        #string = "Key: " + str(self.key) + "\n"
+        #for key in self.data:
+        #    string = string + "\t" + str(key) + " -> " + str(self.data[key]) + "\n"
+        #return string
+        return str(self.key)
 
 def process_csv(filename_csv):
    
@@ -206,5 +236,7 @@ def distance(node1, node2):
         
     return math.sqrt(x)
     
+# Calculate the differences between the clusters within the models and output the integer difference
 def Hamming(model1, model2):
-    
+   hamming = [i for i in model1.model + model2.model if i not in model1.model or i not in model2.model]
+   return len(hamming)/len(model1.clusters.nodes)
